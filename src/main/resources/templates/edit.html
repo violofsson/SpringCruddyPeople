@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit | Look at all the CRUDdy people</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/entireframework.css}"/>
+</head>
+<body>
+<main class="container">
+    <h1>Edit Person</h1>
+    <form action="#" th:action="@{/save}" th:object="${toEdit}" method="post">
+        <p th:if="*{id}" th:text="'ID: ' + *{id}"></p>
+        <p>
+            <label for="name">Name: </label>
+            <input id="name" type="text" th:field="*{name}" required>
+        </p>
+        <p>
+            <label for="gender">Gender: </label>
+            <select id="gender" th:field="*{gender}">
+                <option th:each="g : ${allGenders}" th:value="${g}" th:text="${g}"
+                        th:selected="${g} == *{gender}"></option>
+            </select>
+        </p>
+        <p>
+            <label for="occupation">Occupation: </label>
+            <input id="occupation" type="text" th:field="*{occupation}" required>
+        </p>
+        <p>
+            <label for="city">City: </label>
+            <input id="city" type="text" th:field="*{city}" required>
+        </p>
+        <p>
+            <label for="dob">Date of Birth: </label>
+            <input id="dob" type="date" th:field="*{birthday}" required>
+        </p>
+        <p>
+            <label for="gender">Associated Arcana: </label>
+            <select id="arcana" th:field="*{arcana}">
+                <option th:each="a : ${allArcana}" th:value="${a}" th:text="${a}"
+                        th:selected="${a} == *{arcana}"></option>
+            </select>
+        </p>
+        <input type="submit" class="btn btn-sm" value="Submit">
+    </form>
+</main>
+</body>
+</html>

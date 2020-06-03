@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error | Look at all the CRUDdy people</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/entireframework.css}"/>
+</head>
+<body>
+<main class="container">
+    <h1>Error page</h1>
+    <p>
+        An unspecified error occurred. To be honest, this page's only purpose is to
+        display the link below. Check the server logs.
+    </p>
+
+    <p><a th:href="@{/}">Return to the front page</a></p>
+</main>
+</body>
+</html>

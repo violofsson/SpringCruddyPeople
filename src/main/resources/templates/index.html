@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Look at all the CRUDdy people</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/entireframework.css}"/>
+</head>
+<body>
+<main class="container">
+    <h1>Look at all the CRUDdy people</h1>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Gender</th>
+            <th>Occupation</th>
+            <th>City</th>
+            <th>Date of Birth</th>
+            <th>Associated Arcana</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="person : ${people}">
+            <td th:text="${person.id}"></td>
+            <td th:text="${person.name}"></td>
+            <td th:text="${person.gender}"></td>
+            <td th:text="${person.occupation}"></td>
+            <td th:text="${person.city}"></td>
+            <td th:text="${person.birthday}"></td>
+            <td th:text="${person.arcana}"></td>
+            <td>
+                <a th:href="@{/edit(id=${person.id})}">Edit</a>
+                <a th:href="@{/delete(id=${person.id})}">Delete</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <p><a th:href="@{/new}">Add a new person</a></p>
+</main>
+</body>
+</html>
