@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import se.nackademin.violofsson.spring.cruddypeople.domain.Person;
 import se.nackademin.violofsson.spring.cruddypeople.service.PeopleService;
+import se.nackademin.violofsson.spring.cruddypeople.util.PersonModelAssembler;
 
 import javax.validation.Valid;
 import java.util.stream.Collectors;
@@ -19,10 +20,12 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 // But it clarifies the intended usage and limitations thereof
 public class ApiController {
     private final PeopleService peopleService;
+    private final PersonModelAssembler modelAssembler;
 
     @Autowired
-    public ApiController(PeopleService peopleService) {
+    public ApiController(PeopleService peopleService, PersonModelAssembler modelAssembler) {
         this.peopleService = peopleService;
+        this.modelAssembler = modelAssembler;
     }
 
     // If the json data does not specify an ID, one will be automatically generated
@@ -41,7 +44,7 @@ public class ApiController {
     public ResponseEntity<CollectionModel<EntityModel<Person>>> getAll() {
         return ResponseEntity.ok(CollectionModel.of(
                 peopleService.getAll().stream()
-                        .map(this::personModel)
+                        .map(modelAssembler::toModel)
                         .collect(Collectors.toList()),
                 linkTo(methodOn(ApiController.class).getAll()).withSelfRel().withType("GET"),
                 linkTo(methodOn(ApiController.class).create(new Person())).withRel("create").withType("POST"))
@@ -51,21 +54,8 @@ public class ApiController {
     @GetMapping(value = "/{id}", produces = "application/json")
     public ResponseEntity<EntityModel<Person>> getById(@PathVariable int id) {
         return peopleService.get(id)
-                .map(person -> ResponseEntity.ok(personModel(person)))
+                .map(person -> ResponseEntity.ok(modelAssembler.toModel(person)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    // Spring can generate models like this from a configuration class
-    // But we don't really need that for such a simple application
-    private EntityModel<Person> personModel(Person p) {
-        return EntityModel.of(
-                p,
-                linkTo(methodOn(ApiController.class).getById(p.getId())).withSelfRel().withType("GET"),
-                linkTo(methodOn(ApiController.class).update(p.getId(), p)).withRel("update").withType("PUT"),
-                linkTo(methodOn(ApiController.class).remove(p.getId())).withRel("remove").withType("DELETE"),
-                linkTo(methodOn(ApiController.class).create(p)).withRel("create").withType("POST"),
-                linkTo(methodOn(ApiController.class).getAll()).withRel("people").withType("GET")
-        );
     }
 
     @DeleteMapping(value = "/{id}")
@@ -98,7 +88,7 @@ public class ApiController {
         // So we might as well take a Hibernate-approved shortcut
         if (peopleService.idTaken(id)) {
             updated.setId(id);
-            return ResponseEntity.ok(personModel(peopleService.save(updated)));
+            return ResponseEntity.ok(modelAssembler.toModel(peopleService.save(updated)));
         } else {
             return ResponseEntity.notFound().build();
         }
