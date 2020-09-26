@@ -15,4 +15,4 @@ A fairly simple CRUD app used for interacting with a database of personal
 information. Includes two UIs: a Thymeleaf-based web interface and a rich REST
 API. Also includes default (fictional) data for some familiar names.
 
-This repository was uploaded after grading had finished.
+This repository was uploaded after grading had finished, and has since been polished a bit for richer REST resources.
