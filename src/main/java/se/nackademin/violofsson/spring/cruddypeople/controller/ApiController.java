@@ -3,21 +3,23 @@ package se.nackademin.violofsson.spring.cruddypeople.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.IanaLinkRelations;
+import org.springframework.hateoas.mediatype.problem.Problem;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import se.nackademin.violofsson.spring.cruddypeople.domain.Person;
 import se.nackademin.violofsson.spring.cruddypeople.service.PeopleService;
 import se.nackademin.violofsson.spring.cruddypeople.util.PersonModelAssembler;
 
 import javax.validation.Valid;
-import java.util.stream.Collectors;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
-@RequestMapping("/api/people")
 // We don't really need to specify that we're consuming/producing json
 // But it clarifies the intended usage and limitations thereof
+@RequestMapping(value = "/api/people", consumes = "/application/json", produces = "application/json")
+@Validated
 public class ApiController {
     private final PeopleService peopleService;
     private final PersonModelAssembler modelAssembler;
@@ -31,34 +33,33 @@ public class ApiController {
     // If the json data does not specify an ID, one will be automatically generated
     // Otherwise, the server will attempt to keep the given ID, throwing an error
     // if it's already taken
-    @PostMapping(value = "", consumes = "application/json")
+    @PostMapping
     public ResponseEntity<?> create(@RequestBody @Valid Person p) {
         if (p.getId() != null && peopleService.idTaken(p.getId())) {
-            return ResponseEntity.badRequest().body("Requested ID is already taken.");
+            return ResponseEntity.badRequest()
+                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(Problem.create()
+                            .withTitle("ID Conflict")
+                            .withDetail("The requested ID is already taken.")
+                    );
         }
-        peopleService.save(p);
-        return ResponseEntity.created(linkTo(methodOn(ApiController.class).getById(p.getId())).toUri()).build();
+        EntityModel<Person> entityModel = modelAssembler.toModel(peopleService.save(p));
+        return ResponseEntity.created(
+                entityModel.getRequiredLink(IanaLinkRelations.SELF).toUri()
+        ).body(entityModel);
     }
 
-    @GetMapping(value = "", produces = "application/json")
+    @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<Person>>> getAll() {
-        return ResponseEntity.ok(CollectionModel.of(
-                peopleService.getAll().stream()
-                        .map(modelAssembler::toModel)
-                        .collect(Collectors.toList()),
-                linkTo(methodOn(ApiController.class).getAll()).withSelfRel().withType("GET"),
-                linkTo(methodOn(ApiController.class).create(new Person())).withRel("create").withType("POST"))
-        );
+        return ResponseEntity.ok(modelAssembler.toCollectionModel(peopleService.getAll()));
     }
 
-    @GetMapping(value = "/{id}", produces = "application/json")
+    @GetMapping("/{id}")
     public ResponseEntity<EntityModel<Person>> getById(@PathVariable int id) {
-        return peopleService.get(id)
-                .map(person -> ResponseEntity.ok(modelAssembler.toModel(person)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return ResponseEntity.of(peopleService.get(id).map(modelAssembler::toModel));
     }
 
-    @DeleteMapping(value = "/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<?> remove(@PathVariable int id) {
         return peopleService.remove(id)
                 ? ResponseEntity.noContent().build()
@@ -67,12 +68,17 @@ public class ApiController {
 
     // If the json data doesn't include an ID, the request path ID will be used
     // If json and URI disagree, it's treated as an error
-    @PutMapping(value = "/{id}", consumes = "application/json", produces = "application/json")
+    @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable int id, @RequestBody @Valid Person updated) {
-        // Null check before comparison, since the JVM will attempt to cast getId() to int
-        // equals() would also require a null check
+        // Null check before comparison, since the JVM will attempt to cast
+        // getId() to int. equals() would also require a null check
         if (updated.getId() != null && id != updated.getId()) {
-            return ResponseEntity.badRequest().body("Existing ID does not match updated ID.");
+            return ResponseEntity.badRequest()
+                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(Problem.create()
+                            .withTitle("ID Conflict")
+                            .withDetail("Path ID does not match entity ID.")
+                    );
         }
         /*Optional<Person> potential = peopleService.get(id);
         if (potential.isPresent()) {
@@ -84,8 +90,9 @@ public class ApiController {
             existing.setBirthday(updated.getBirthday());
             existing.setArcana(updated.getArcana());
             return ResponseEntity.ok(personModel(peopleService.save(existing)));*/
-        // The updated person is already validated and we will always replace the whole entity
-        // So we might as well take a Hibernate-approved shortcut
+        // The updated person is already validated and we will always replace
+        // the whole entity, so we might as well take a Hibernate-approved
+        // shortcut
         if (peopleService.idTaken(id)) {
             updated.setId(id);
             return ResponseEntity.ok(modelAssembler.toModel(peopleService.save(updated)));
